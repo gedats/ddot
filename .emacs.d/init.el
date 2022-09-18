@@ -108,12 +108,40 @@
   (setf mood-line-show-cursor-point t)
   (mood-line-mode))
 
+;; vertico
 (use-package vertico
-  :init
+  :config
+  ;; Set up minibuffer.
+  (setq enable-recursive-minibuffers t
+        read-extended-command-predicate #'command-completion-default-include-p
+        minibuffer-prompt-properties '(read-only t cursor-intangible t face minibuffer-prompt))
+  (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
+
   (vertico-mode)
-  (setq vertico-scroll-margin 0)
-  (setq vertico-count 20)
-  (setq vertico-cycle t))
+  :custom
+  (vertico-cycle t)
+  (vertico-scroll-margin 0)
+  (vertico-count 20)
+  (vertico-sort-function #'vertico-sort-history-alpha)
+  :defer 1)
+;; (use-package vertico
+;;   :init
+;;   (vertico-mode)
+;;   (setq vertico-scroll-margin 0)
+;;   (setq vertico-count 20)
+;;   (setq vertico-cycle t))
+;; Configure vertico-quick extension
+;; (use-package vertico-quick
+;;   :straight nil
+;;   :bind
+;;   (:map vertico-map
+;;    ("M-q" . vertico-quick-exit)
+;;    ("C-q" . vertico-quick-insert))
+;;   :demand
+;;   :after vertico
+;;   :ensure nil)
+
+(use-package avy)
 
 (use-package savehist :init (savehist-mode))
 
@@ -154,6 +182,95 @@
   :config
   (recentf-mode t))
 
+;; marginalia: add info in mini-buffer
+(use-package marginalia
+  :ensure t
+  :config
+  (marginalia-mode))
+
+;; embark
+(use-package embark
+  :ensure t
+
+  :bind
+  (("C-." . embark-act)         ;; pick some comfortable binding
+   ("C-;" . embark-dwim)        ;; good alternative: M-.
+   ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
+
+  :init
+
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  :config
+
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
+
+;; Consult users will also want the embark-consult package.
+(use-package embark-consult
+  :ensure t
+  :after (embark consult)
+  :demand t ; only necessary if you have the hook below
+  ;; if you want to have consult previews as you move around an
+  ;; auto-updating embark collect buffer
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
+
+;; avy-embark-collect
+(use-package avy-embark-collect)
+
+;; swiper
+(use-package swiper)
+
+;; counsel
+(use-package counsel)
+
+;; ivy
+(use-package ivy
+  :config
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers t)
+  (setq ivy-count-format "(%d/%d) ")
+  (setq ivy-height 20)
+  (setq ivy-wrap t)
+  (global-set-key (kbd "C-s") 'swiper-isearch)
+  ;; (global-set-key (kbd "M-x") 'counsel-M-x)
+    (global-set-key (kbd "C-x C-f") 'counsel-find-file)
+    (global-set-key (kbd "M-y") 'counsel-yank-pop)
+    (global-set-key (kbd "<f1> f") 'counsel-describe-function)
+    (global-set-key (kbd "<f1> v") 'counsel-describe-variable)
+    (global-set-key (kbd "<f1> l") 'counsel-find-library)
+    (global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
+    (global-set-key (kbd "<f2> u") 'counsel-unicode-char)
+    (global-set-key (kbd "<f2> j") 'counsel-set-variable)
+    (global-set-key (kbd "C-c C-r") 'ivy-resume)
+    (global-set-key (kbd "C-x b") 'ivy-switch-buffer)
+    (global-set-key (kbd "C-c v") 'ivy-push-view)
+    (global-set-key (kbd "C-c V") 'ivy-pop-view)
+    (global-set-key (kbd "C-c c") 'counsel-compile)
+    (global-set-key (kbd "C-c g") 'counsel-git)
+    (global-set-key (kbd "C-c j") 'counsel-git-grep)
+    (global-set-key (kbd "C-c L") 'counsel-git-log)
+    (global-set-key (kbd "C-c k") 'counsel-rg)
+    (global-set-key (kbd "C-c m") 'counsel-linux-app)
+    (global-set-key (kbd "C-c n") 'counsel-fzf)
+    (global-set-key (kbd "C-x l") 'counsel-locate)
+    (global-set-key (kbd "C-c J") 'counsel-file-jump)
+    (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
+    (global-set-key (kbd "C-c w") 'counsel-wmctrl)
+    (global-set-key (kbd "C-c b") 'counsel-bookmark)
+    (global-set-key (kbd "C-c d") 'counsel-descbinds)
+    (global-set-key (kbd "C-c o") 'counsel-outline)
+    (global-set-key (kbd "C-c F") 'counsel-org-file)
+  )
+
+(use-package ivy-avy)
+
+
 (use-package evil
   :init
   (setq
@@ -168,6 +285,7 @@
   (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
   (define-key evil-insert-state-map (kbd "C-h") 'evil-delete-backward-char)
   (define-key evil-insert-state-map (kbd "C-S-h") 'evil-delete-backward-word)
+  (define-key evil-insert-state-map (kbd "<f7>") 'evil-avy-goto-line)
   (evil-set-initial-state 'messages-buffer-mode 'normal)
   (evil-set-initial-state 'dashboard-mode 'normal)
 
@@ -182,6 +300,8 @@
   (setf evil-collection-mode-list
 	(remove 'lispy evil-collection-mode-list))
   (evil-collection-init))
+
+;; cider
 (use-package cider
   :config
   (setq cider-babashka-parameters "nrepl-server 0"
